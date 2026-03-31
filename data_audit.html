@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Audit Tool | Trew Data</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root {
+  --purple-deep:#491d8b;--purple-mid:#6929c4;--purple-bright:#8a3ffc;
+  --purple-light:#be95ff;--purple-pale:#e8daff;--purple-ghost:#f6f2ff;
+  --cyan:#3ddbd9;--cyan-light:#9ef0f0;--white:#ffffff;
+  --text-dark:#1a0a3d;--text-mid:#4a3570;--text-muted:#8b7ab0;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--purple-ghost);color:var(--text-dark);min-height:100vh;display:flex;flex-direction:column;}
+
+header{background:var(--purple-deep);padding:1.2rem 2rem;display:flex;justify-content:space-between;align-items:center;}
+.logo{font-family:'DM Serif Display',serif;color:var(--white);font-size:1.2rem;}
+.logo span{color:var(--cyan);}
+.header-tag{font-size:0.75rem;color:var(--purple-pale);letter-spacing:0.08em;text-transform:uppercase;}
+
+.main{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem;}
+
+.card{background:var(--white);border-radius:16px;width:100%;max-width:620px;overflow:hidden;box-shadow:0 4px 24px rgba(73,29,139,0.1);}
+
+.card-header{background:var(--purple-deep);padding:2rem;position:relative;overflow:hidden;}
+.card-header::after{content:'';position:absolute;bottom:-40px;right:-40px;width:150px;height:150px;border-radius:50%;background:var(--cyan);opacity:0.08;}
+.card-header h1{font-family:'DM Serif Display',serif;color:var(--white);font-size:1.6rem;margin-bottom:0.4rem;}
+.card-header p{color:var(--purple-pale);font-size:0.9rem;font-weight:300;line-height:1.6;}
+
+.progress-bar{height:4px;background:rgba(255,255,255,0.15);}
+.progress-fill{height:100%;background:var(--cyan);transition:width 0.4s ease;width:0%;}
+
+.card-body{padding:2rem;}
+
+.question-wrap{display:none;}
+.question-wrap.active{display:block;}
+
+.question-num{font-size:0.72rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--purple-bright);margin-bottom:0.6rem;}
+.question-text{font-size:1.1rem;font-weight:500;color:var(--text-dark);line-height:1.4;margin-bottom:1.5rem;}
+
+.options{display:flex;flex-direction:column;gap:0.75rem;}
+
+.option{background:var(--purple-ghost);border:1.5px solid var(--purple-pale);border-radius:10px;padding:1rem 1.2rem;cursor:pointer;transition:all 0.2s;font-size:0.95rem;color:var(--text-mid);font-weight:400;text-align:left;}
+.option:hover{border-color:var(--purple-bright);color:var(--text-dark);}
+.option.selected{border-color:var(--purple-bright);background:var(--purple-pale);color:var(--purple-deep);font-weight:500;}
+
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem;}
+.btn-back{background:none;border:1px solid var(--purple-pale);color:var(--text-muted);padding:0.7rem 1.4rem;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.9rem;transition:all 0.2s;}
+.btn-back:hover{border-color:var(--purple-bright);color:var(--text-dark);}
+.btn-next{background:var(--purple-bright);color:var(--white);padding:0.7rem 1.6rem;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:500;border:none;transition:all 0.2s;opacity:0.4;pointer-events:none;}
+.btn-next.ready{opacity:1;pointer-events:auto;}
+.btn-next.ready:hover{background:var(--purple-mid);}
+
+.result-wrap{display:none;}
+.result-wrap.active{display:block;}
+
+.score-ring{width:120px;height:120px;margin:0 auto 1.5rem;position:relative;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-ring circle{fill:none;stroke-width:8;}
+.score-ring .bg{stroke:var(--purple-pale);}
+.score-ring .fill{stroke:var(--cyan);stroke-linecap:round;transition:stroke-dashoffset 1s ease;}
+.score-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.score-number{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--purple-deep);line-height:1;}
+.score-sub{font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;}
+
+.result-title{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--text-dark);text-align:center;margin-bottom:0.5rem;}
+.result-subtitle{font-size:0.9rem;color:var(--text-muted);text-align:center;margin-bottom:1.5rem;font-weight:300;}
+
+.findings{display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.5rem;}
+.finding{display:flex;gap:0.8rem;align-items:flex-start;padding:0.9rem 1rem;border-radius:10px;background:var(--purple-ghost);border-left:3px solid var(--purple-bright);}
+.finding.good{border-left-color:var(--cyan);}
+.finding-icon{font-size:16px;margin-top:1px;flex-shrink:0;}
+.finding-text{font-size:0.875rem;color:var(--text-mid);line-height:1.6;}
+.finding-text strong{color:var(--text-dark);font-weight:500;}
+
+.cta-box{background:var(--purple-deep);border-radius:12px;padding:1.5rem;text-align:center;}
+.cta-box p{color:var(--purple-pale);font-size:0.875rem;font-weight:300;margin-bottom:1rem;line-height:1.6;}
+.cta-btn{display:inline-block;background:var(--cyan);color:var(--purple-deep);padding:0.8rem 1.8rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.9rem;}
+
+.restart-btn{background:none;border:none;color:var(--text-muted);font-size:0.8rem;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:1rem;display:block;width:100%;text-align:center;text-decoration:underline;}
+
+footer{background:var(--purple-deep);padding:1rem 2rem;text-align:center;}
+footer p{font-size:0.75rem;color:var(--text-muted);}
+footer span{color:var(--cyan);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">trew<span>-data.com</span></div>
+  <div class="header-tag">Free Data Audit</div>
+</header>
+
+<div class="main">
+  <div class="card">
+    <div class="card-header">
+      <h1>How well is your data working for you?</h1>
+      <p>Answer 8 quick questions to find out where your business is losing time — and what could be fixed.</p>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+    <div class="card-body">
+
+      <!-- Q1 -->
+      <div class="question-wrap active" data-q="0">
+        <div class="question-num">Question 1 of 8</div>
+        <div class="question-text">How do you produce your main business reports?</div>
+        <div class="options">
+          <button class="option" data-score="3">Manually — I build them from scratch each time</button>
+          <button class="option" data-score="2">Semi-manual — I have a template but still spend time updating it</button>
+          <button class="option" data-score="1">Mostly automated — it runs with minimal effort</button>
+          <button class="option" data-score="0">Fully automated — I don't touch it at all</button>
+        </div>
+        <div class="nav-row">
+          <span></span>
+          <button class="btn-next" id="next-0">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="question-wrap" data-q="1">
+        <div class="question-num">Question 2 of 8</div>
+        <div class="question-text">How long does your monthly reporting take?</div>
+        <div class="options">
+          <button class="option" data-score="3">More than a day</button>
+          <button class="option" data-score="2">Half a day</button>
+          <button class="option" data-score="1">A couple of hours</button>
+          <button class="option" data-score="0">Less than an hour</button>
+        </div>
+        <div class="nav-row">
+          <button class="btn-back" data-prev="0">← Back</button>
+          <button class="btn-next" id="next-1">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="question-wrap" data-q="2">
+        <div class="question-num">Question 3 of 8</div>
+        <div class="question-text">Where does most of your business data live?</div>
+        <div class="options">
+          <button class="option" data-score="3">Across multiple spreadsheets with no clear structure</button>
+          <button class="option" data-score="2">Mainly in Excel — organised but still manual</button>
+          <button class="option" data-score="1">In a system, but we still export and manipulate it manually</button>
+          <button class="option" data-score="0">In a system that feeds dashboards automatically</button>
+        </div>
+        <div class="nav-row">
+          <button class="btn-back" data-prev="1">← Back</button>
+          <button class="btn-next" id="next-2">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="question-wrap" data-q="3">
+        <div class="question-num">Question 4 of 8</div>
+        <div class="question-text">How confident are you in the accuracy of your data?</div>
+        <div class="options">
+          <button class="option" data-score="3">Not very — errors creep in and we don't always catch them</button>
+          <button class="option" data-score="2">Reasonably — but we have to double-check manually</button>
+          <button class="option" data-score="1">Mostly confident — occasional issues but nothing major</button>
+          <button class="option" data-score="0">Very confident — we have checks and validation in place</button>
+        </div>
+        <div class="nav-row">
+          <button class="btn-back" data-prev="2">← Back</button>
+          <button class="btn-next" id="next-3">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="question-wrap" data-q="4">
+        <div class="question-num">Question 5 of 8</div>
+        <div class="question-text">How do you currently invoice or bill clients?</div>
+        <div class="options">
+          <button class="option" data-score="3">Manually — I create each invoice individually</button>
+          <button class="option" data-score="2">Using a template — but I still fill in the details each time</button>
+          <button class="option" data-score="1">Using software — but it's not fully connected to my other systems</button>
+          <button class="option" data-score="0">Automatically — it pulls from my systems with no manual input</button>
+        </div>
+        <div class="nav-row">
+          <button class="btn-back" data-prev="3">← Back</button>
+          <button class="btn-next" id="next-4">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="question-wrap" data-q="5">
+        <div class="question-num">Question 6 of 8</div>
+        <div class="question-text">How quickly can you answer "how is the business performing right now?"</div>
+        <div class="options">
+          <button class="option" data-score="3">It takes time — I need to pull reports together first</button>
+          <button class="option" data-score="2">I have a rough idea but can't give exact figures quickly</button>
+          <button class="option" data-score="1">I can get the numbers but it takes a few minutes</button>
+          <button class="option" data-score="0">Instantly — I have a live dashboard I check regularly</button>
+        </div>
+        <div class="nav-row">
+          <button class="btn-back" data-prev="4">← Back</button>
+          <button class="btn-next" id="next-5">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="question-wrap" data-q="6">
+        <div class="question-num">Question 7 of 8</div>
+        <div class="question-text">How much time per week does your team spend on repetitive data tasks?</div>
+        <div class="options">
+          <button class="option" data-score="3">More than 5 hours</button>
+          <button class="option" data-score="2">2–5 hours</button>
+          <button class="option" data-score="1">Less than 2 hours</button>
+          <button class="option" data-score="0">Almost none — it's mostly automated</button>
+        </div>
+        <div class="nav-row">
+          <button class="btn-back" data-prev="5">← Back</button>
+          <button class="btn-next" id="next-6">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="question-wrap" data-q="7">
+        <div class="question-num">Question 8 of 8</div>
+        <div class="question-text">Have you ever thought "there must be a better way to do this" about a data or reporting task?</div>
+        <div class="options">
+          <button class="option" data-score="3">Yes — regularly, about multiple things</button>
+          <button class="option" data-score="2">Yes — about one or two specific things</button>
+          <button class="option" data-score="1">Occasionally — but I haven't done anything about it</button>
+          <button class="option" data-score="0">Not really — I'm pretty happy with how things work</button>
+        </div>
+        <div class="nav-row">
+          <button class="btn-back" data-prev="6">← Back</button>
+          <button class="btn-next" id="next-7">See my results →</button>
+        </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="result-wrap" id="results">
+        <div class="score-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="bg" cx="60" cy="60" r="52"/>
+            <circle class="fill" id="score-circle" cx="60" cy="60" r="52" stroke-dasharray="327" stroke-dashoffset="327"/>
+          </svg>
+          <div class="score-label">
+            <div class="score-number" id="score-display">0</div>
+            <div class="score-sub">/ 24</div>
+          </div>
+        </div>
+
+        <div class="result-title" id="result-title"></div>
+        <div class="result-subtitle" id="result-subtitle"></div>
+
+        <div class="findings" id="findings"></div>
+
+        <div class="cta-box">
+          <p>Want to talk through what these results mean for your business? I offer a free 20-minute call with no obligation.</p>
+          <a class="cta-btn" href="#" data-user="contact" data-domain="trew-data.com" id="cta-email">Book a free call</a>
+        </div>
+
+        <button class="restart-btn" id="restart">Start again</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Built by <span>trew-data.com</span> · Emily Trew Data Consulting</p>
+</footer>
+
+<script>
+const scores = [];
+let total = 0;
+const answers = [];
+
+document.querySelectorAll('.question-wrap').forEach((wrap, qi) => {
+  const nextBtn = document.getElementById('next-' + qi);
+  const opts = wrap.querySelectorAll('.option');
+
+  opts.forEach(opt => {
+    opt.addEventListener('click', () => {
+      opts.forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      answers[qi] = parseInt(opt.dataset.score);
+      nextBtn.classList.add('ready');
+    });
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (!nextBtn.classList.contains('ready')) return;
+    if (qi < 7) {
+      wrap.classList.remove('active');
+      document.querySelector('[data-q="' + (qi+1) + '"]').classList.add('active');
+      updateProgress(qi + 2);
+    } else {
+      showResults();
+    }
+  });
+
+  const backBtn = wrap.querySelector('.btn-back');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      wrap.classList.remove('active');
+      document.querySelector('[data-q="' + backBtn.dataset.prev + '"]').classList.add('active');
+      updateProgress(parseInt(backBtn.dataset.prev) + 1);
+    });
+  }
+});
+
+function updateProgress(step) {
+  document.getElementById('progress').style.width = (step / 8 * 100) + '%';
+}
+
+function showResults() {
+  total = answers.reduce((a, b) => a + b, 0);
+
+  document.querySelectorAll('.question-wrap').forEach(w => w.classList.remove('active'));
+  document.getElementById('results').classList.add('active');
+  updateProgress(8);
+
+  const scoreDisplay = document.getElementById('score-display');
+  const circle = document.getElementById('score-circle');
+  const circumference = 327;
+  const offset = circumference - (total / 24) * circumference;
+
+  setTimeout(() => {
+    scoreDisplay.textContent = total;
+    circle.style.strokeDashoffset = offset;
+  }, 100);
+
+  const title = document.getElementById('result-title');
+  const subtitle = document.getElementById('result-subtitle');
+  const findings = document.getElementById('findings');
+
+  if (total >= 18) {
+    title.textContent = 'Significant time is being lost to manual processes';
+    subtitle.textContent = 'Your data is working against you — but the good news is most of this is fixable.';
+  } else if (total >= 10) {
+    title.textContent = 'There\'s real room for improvement';
+    subtitle.textContent = 'You\'re managing, but manual tasks are costing your team more time than they should.';
+  } else {
+    title.textContent = 'You\'re ahead of most businesses';
+    subtitle.textContent = 'You have good foundations — a few tweaks could make things even more efficient.';
+  }
+
+  const items = [];
+
+  if (answers[0] >= 2) items.push({bad:true, text:'<strong>Your reporting is manual.</strong> Time spent rebuilding reports from scratch every month is time your team could spend on actual work.'});
+  else items.push({bad:false, text:'<strong>Your reporting is reasonably automated.</strong> Good foundation to build on.'});
+
+  if (answers[1] >= 2) items.push({bad:true, text:'<strong>Reporting takes too long.</strong> Monthly reports shouldn\'t take more than an hour once properly automated.'});
+
+  if (answers[2] >= 2) items.push({bad:true, text:'<strong>Your data is scattered.</strong> Consolidating it into one clean, reliable source would save time every single week.'});
+
+  if (answers[3] >= 2) items.push({bad:true, text:'<strong>Data accuracy is a risk.</strong> Manual processes introduce errors — automation removes them.'});
+  else items.push({bad:false, text:'<strong>You have reasonable confidence in your data.</strong> Automated validation could make this even stronger.'});
+
+  if (answers[4] >= 2) items.push({bad:true, text:'<strong>Invoicing is manual.</strong> This is one of the easiest processes to automate and typically saves hours per billing cycle.'});
+
+  if (answers[5] >= 2) items.push({bad:true, text:'<strong>You can\'t see performance at a glance.</strong> A live dashboard would give you instant answers without pulling reports together.'});
+
+  if (answers[6] >= 2) items.push({bad:true, text:'<strong>Your team spends significant time on repetitive data tasks.</strong> Most of this could be automated.'});
+
+  if (answers[7] >= 2) items.push({bad:true, text:'<strong>You already know something needs to change.</strong> That instinct is usually right.'});
+
+  findings.innerHTML = items.slice(0,5).map(i =>
+    '<div class="finding ' + (i.bad ? '' : 'good') + '">' +
+    '<div class="finding-icon">' + (i.bad ? '⚠' : '✓') + '</div>' +
+    '<div class="finding-text">' + i.text + '</div></div>'
+  ).join('');
+
+  const cta = document.getElementById('cta-email');
+  cta.href = 'mai' + 'lto:contact@trew-data.com?subject=Data Audit Results — Free Call Request';
+}
+
+document.getElementById('restart').addEventListener('click', () => {
+  answers.length = 0;
+  total = 0;
+  document.getElementById('results').classList.remove('active');
+  document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('.btn-next').forEach(b => b.classList.remove('ready'));
+  document.querySelector('[data-q="0"]').classList.add('active');
+  updateProgress(1);
+  document.getElementById('score-display').textContent = '0';
+  document.getElementById('score-circle').style.strokeDashoffset = '327';
+});
+</script>
+</body>
+</html>
